@@ -1,5 +1,7 @@
 # Inject-JavaScript-via-PDFrw-example
 
+С использованием библиотеки [PDFrw](https://github.com/pmaupin/pdfrw)
+
 ``` 
 usage: injector.py [-h] -i PATH [--script SCRIPT] [--name NAME] [--output OUT] [--inject_place INJECT_PLACE]
 
