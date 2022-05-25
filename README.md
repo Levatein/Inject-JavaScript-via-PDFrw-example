@@ -1,8 +1,7 @@
 # Inject-JavaScript-via-PDFrw-example
 
-- Запуск с параметрами по умолчанию:
-
-`usage: injector.py [-h] -i PATH [--script SCRIPT] [--name NAME] [--output OUT] [--inject_place INJECT_PLACE]
+``` 
+usage: injector.py [-h] -i PATH [--script SCRIPT] [--name NAME] [--output OUT] [--inject_place INJECT_PLACE]
 
 Inject JavaScript in PDF using PDFrw
 
@@ -13,7 +12,8 @@ optional arguments:
   --name NAME           script name if injecting in /Names; ErrorScript by default
   --output OUT          output file name; inj.pdf by default
   --inject_place INJECT_PLACE
-                        [OpenAction | Annots | Names]; openaction by default`
+                        [OpenAction | Annots | Names]; openaction by default
+```
 
 - Пример действия в ветке Names с обфускацией:
 
